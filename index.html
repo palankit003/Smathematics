@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Polygon Sides Controller</title>
+    <style>
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          Helvetica, Arial, sans-serif;
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 20px;
+        text-align: center;
+        background-color: #f5f5f7;
+        color: #333;
+      }
+
+      h1 {
+        margin-bottom: 20px;
+        color: #1d1d1f;
+      }
+
+      .container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        background-color: white;
+        border-radius: 12px;
+        padding: 30px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+      }
+
+      #canvas {
+        margin: 10px auto;
+        background-color: #fff;
+        border-radius: 8px;
+      }
+
+      .controls {
+        width: 100%;
+        max-width: 500px;
+        margin-top: 20px;
+      }
+
+      .slider-container {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 10px;
+      }
+
+      input[type="range"] {
+        flex: 1;
+        margin: 0 10px;
+      }
+
+      .slider-value {
+        font-size: 18px;
+        font-weight: bold;
+        width: 40px;
+        text-align: center;
+      }
+
+      .info {
+        margin-top: 15px;
+        font-size: 14px;
+        color: #555;
+      }
+
+      .polygon-name {
+        font-size: 20px;
+        font-weight: bold;
+        margin-top: 5px;
+        color: #007aff;
+      }
+
+      .angle-info {
+        display: flex;
+        justify-content: space-around;
+        width: 100%;
+        max-width: 500px;
+        margin-top: 15px;
+      }
+
+      .angle-box {
+        background-color: #f0f0f0;
+        border-radius: 8px;
+        padding: 10px;
+        width: 45%;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+      }
+
+      .angle-label {
+        font-weight: bold;
+        margin-bottom: 5px;
+      }
+
+      .angle-value {
+        font-size: 18px;
+        color: #007aff;
+      }
+
+      .angle-formula {
+        font-size: 12px;
+        color: #666;
+        margin-top: 5px;
+        font-style: italic;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Polygon Sides Controller</h1>
+
+    <div class="container">
+      <canvas id="canvas" width="400" height="400"></canvas>
+
+      <div class="polygon-name" id="polygon-name">Triangle</div>
+
+      <div class="angle-info">
+        <div class="angle-box">
+          <div class="angle-label">Interior Angle</div>
+          <div class="angle-value" id="interior-angle">60°</div>
+          <div class="angle-formula">(n-2) × 180° ÷ n</div>
+        </div>
+        <div class="angle-box">
+          <div class="angle-label">Exterior Angle</div>
+          <div class="angle-value" id="exterior-angle">120°</div>
+          <div class="angle-formula">360° ÷ n</div>
+        </div>
+      </div>
+
+      <div class="controls">
+        <div class="slider-container">
+          <div class="slider-value">3</div>
+          <input
+            type="range"
+            id="sides-slider"
+            min="3"
+            max="20"
+            value="3"
+            step="1"
+          />
+          <div class="slider-value" id="sides-value">3</div>
+        </div>
+      </div>
+
+      <div class="info">
+        <p>Drag the slider to change the number of sides of the polygon.</p>
+        <p>
+          Notice how the interior angles increase and exterior angles decrease
+          as sides increase.
+        </p>
+      </div>
+    </div>
+
+    <script>
+      const canvas = document.getElementById("canvas");
+      const ctx = canvas.getContext("2d");
+      const slider = document.getElementById("sides-slider");
+      const sidesValue = document.getElementById("sides-value");
+      const polygonName = document.getElementById("polygon-name");
+      const interiorAngleDisplay = document.getElementById("interior-angle");
+      const exteriorAngleDisplay = document.getElementById("exterior-angle");
+
+      // Polygon names mapped to number of sides
+      const polygonNames = {
+        3: "Triangle",
+        4: "Square",
+        5: "Pentagon",
+        6: "Hexagon",
+        7: "Heptagon",
+        8: "Octagon",
+        9: "Nonagon",
+        10: "Decagon",
+        11: "Hendecagon",
+        12: "Dodecagon",
+        13: "Tridecagon",
+        14: "Tetradecagon",
+        15: "Pentadecagon",
+        16: "Hexadecagon",
+        17: "Heptadecagon",
+        18: "Octadecagon",
+        19: "Enneadecagon",
+        20: "Icosagon",
+      };
+
+      // Colors for different polygons
+      const colors = [
+        "#FF6384",
+        "#36A2EB",
+        "#FFCE56",
+        "#4BC0C0",
+        "#9966FF",
+        "#FF9F40",
+        "#2ECC71",
+        "#E74C3C",
+        "#3498DB",
+        "#F1C40F",
+        "#9B59B6",
+        "#1ABC9C",
+        "#E67E22",
+        "#34495E",
+        "#D35400",
+        "#27AE60",
+        "#8E44AD",
+        "#2980B9",
+        "#F39C12",
+        "#16A085",
+      ];
+
+      function calculateAngles(sides) {
+        // Interior angle = (n-2) × 180° ÷ n
+        const interiorAngle = ((sides - 2) * 180) / sides;
+
+        // Exterior angle = 360° ÷ n
+        const exteriorAngle = 360 / sides;
+
+        return {
+          interior: interiorAngle.toFixed(1),
+          exterior: exteriorAngle.toFixed(1),
+        };
+      }
+
+      function drawPolygon(sides) {
+        const centerX = canvas.width / 2;
+        const centerY = canvas.height / 2;
+        const radius = Math.min(canvas.width, canvas.height) / 3;
+
+        // Clear canvas
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        // Set polygon color
+        ctx.fillStyle = colors[sides - 3];
+        ctx.strokeStyle = "#333";
+        ctx.lineWidth = 2;
+
+        // Calculate vertices
+        const vertices = [];
+        for (let i = 0; i < sides; i++) {
+          const angle = (i * 2 * Math.PI) / sides - Math.PI / 2;
+          const x = centerX + radius * Math.cos(angle);
+          const y = centerY + radius * Math.sin(angle);
+          vertices.push({ x, y });
+        }
+
+        // Draw polygon
+        ctx.beginPath();
+        ctx.moveTo(vertices[0].x, vertices[0].y);
+        for (let i = 1; i < sides; i++) {
+          ctx.lineTo(vertices[i].x, vertices[i].y);
+        }
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+
+        // Draw interior angle visualization (first vertex)
+        const angleToShow = Math.min(sides, 8); // Only show angle markers for shapes with 8 or fewer sides
+        if (sides <= angleToShow) {
+          // Draw interior angles
+          for (let i = 0; i < sides; i++) {
+            const current = vertices[i];
+            const prev = vertices[(i - 1 + sides) % sides];
+            const next = vertices[(i + 1) % sides];
+
+            drawInteriorAngle(current, prev, next, 30);
+          }
+
+          // Draw exterior angles
+          for (let i = 0; i < sides; i++) {
+            const current = vertices[i];
+            const next = vertices[(i + 1) % sides];
+            const extended = {
+              x: current.x + (current.x - next.x) * 0.5,
+              y: current.y + (current.y - next.y) * 0.5,
+            };
+
+            drawExteriorAngle(current, next, extended, 40);
+          }
+        }
+
+        // Calculate and update angles
+        const angles = calculateAngles(sides);
+        interiorAngleDisplay.textContent = angles.interior + "°";
+        exteriorAngleDisplay.textContent = angles.exterior + "°";
+
+        // Update polygon name
+        polygonName.textContent = polygonNames[sides];
+      }
+
+      function drawInteriorAngle(vertex, p1, p2, radius) {
+        const a1 = Math.atan2(p1.y - vertex.y, p1.x - vertex.x);
+        const a2 = Math.atan2(p2.y - vertex.y, p2.x - vertex.x);
+
+        // Draw arc for interior angle
+        ctx.beginPath();
+        ctx.arc(vertex.x, vertex.y, radius, a1, a2, false);
+        ctx.strokeStyle = "rgba(0, 122, 255, 0.7)";
+        ctx.lineWidth = 3;
+        ctx.stroke();
+      }
+
+      function drawExteriorAngle(vertex, next, extended, radius) {
+        const a1 = Math.atan2(next.y - vertex.y, next.x - vertex.x);
+        const a2 = Math.atan2(extended.y - vertex.y, extended.x - vertex.x);
+
+        // Draw arc for exterior angle
+        ctx.beginPath();
+        ctx.arc(vertex.x, vertex.y, radius, a1, a2, true);
+        ctx.strokeStyle = "rgba(255, 59, 48, 0.7)";
+        ctx.lineWidth = 3;
+        ctx.stroke();
+      }
+
+      // Initialize with triangle
+      drawPolygon(3);
+
+      // Update when slider changes
+      slider.addEventListener("input", function () {
+        const sides = parseInt(this.value);
+        sidesValue.textContent = sides;
+        drawPolygon(sides);
+      });
+    </script>
+  </body>
+</html>
